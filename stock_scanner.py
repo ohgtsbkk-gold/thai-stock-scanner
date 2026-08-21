@@ -17,16 +17,20 @@ GROUP_B = ["TTB.BK", "KTB.BK", "TISCO.BK", "KKP.BK", "TCAP.BK", "BDMS.BK",
 def fetch_stock_data(ticker):
     try:
         stock = yf.Ticker(ticker)
-        # ดึงราคาย้อนหลัง 2 ปีเพื่อให้ได้วันทำการเกิน 200 วันชัวร์ๆ
-        df = stock.history(period="2y")
+        # 1. ขยายเป็น 5y เพื่อรับประกันว่าได้วันทำการเกิน 200 วันแน่นอน
+        df = stock.history(period="5y")
         
-        if df.empty or len(df) < 200:
-            return None, f"{ticker}: ข้อมูลไม่ครบ 200 วัน"
+        # 2. กรองเฉพาะแถวที่มีราคาปิดจริง ลบค่า NaN ออกทั้งหมด
+        df = df.dropna(subset=['Close'])
+        
+        total_days = len(df)
+        if total_days < 200:
+            return None, f"{ticker}: มีข้อมูลเพียง {total_days} วันทำการ (ต้องการอย่างน้อย 200 วัน)"
             
-        # คำนวณ SMA
-        df['SMA_46'] = df['Close'].rolling(window=46).mean()
-        df['SMA_67'] = df['Close'].rolling(window=67).mean()
-        df['SMA_200'] = df['Close'].rolling(window=200).mean()
+        # 3. คำนวณ SMA พร้อมใส่ min_periods กันพลาดกรณีข้อมูลขาดช่วงเล็กน้อย
+        df['SMA_46'] = df['Close'].rolling(window=46, min_periods=40).mean()
+        df['SMA_67'] = df['Close'].rolling(window=67, min_periods=60).mean()
+        df['SMA_200'] = df['Close'].rolling(window=200, min_periods=180).mean()
         
         latest = df.iloc[-1]
         price = latest['Close']
@@ -35,14 +39,14 @@ def fetch_stock_data(ticker):
         sma200 = latest['SMA_200']
         
         if pd.isna(sma200) or pd.isna(sma46) or pd.isna(sma67):
-            return None, f"{ticker}: คำนวณ SMA ไม่สำเร็จ"
+            return None, f"{ticker}: ค่า SMA ยังคงเป็น NaN (วันทำการไม่พอคำนวณ)"
 
-        # คำนวณ Dividend Yield ย้อนหลัง 1 ปี (TTM) จากประวัติปันผลจริง (ไม่ใช้ stock.info เพื่อป้องกันโดนยี่ห้อบล็อก)
+        # 4. คำนวณ Dividend Yield (TTM) ย้อนหลัง 1 ปี
         dividend_yield_pct = 0.0
         try:
             divs = stock.dividends
             if not divs.empty:
-                divs.index = divs.index.tz_localize(None) # ปรับ timezone
+                divs.index = divs.index.tz_localize(None)
                 one_year_ago = datetime.now() - timedelta(days=365)
                 ttm_div = divs[divs.index >= one_year_ago].sum()
                 if price > 0:
@@ -71,7 +75,7 @@ def fetch_stock_data(ticker):
         }, None
         
     except Exception as e:
-        return None, f"{ticker}: {str(e)}"
+        return None, f"{ticker}: เกิดข้อผิดพลาด ({str(e)})"
 
 # --- หน้าตา Web App ---
 st.title("📈 Thai Stock Scanner: SMA & Dividend > 5%")
@@ -123,6 +127,6 @@ if st.button("🚀 เริ่มแสกนหุ้น"):
             st.info("วันนี้ยังไม่มีหุ้นตัวไหนเข้าเกณฑ์ (ปันผล > 5% และอยู่ในโซนเหลือง/ครีม)")
             
     if errors:
-        with st.expander("⚠️ รายการหุ้นที่ไม่สามารถดึงข้อมูลได้"):
+        with st.expander("⚠️ รายการหุ้นที่มีปัญหา / ข้อมูลไม่พอคำนวณ"):
             for err_msg in errors:
                 st.write(err_msg)
