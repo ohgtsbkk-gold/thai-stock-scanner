@@ -1,6 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Thai Stock SMA Scanner", layout="wide")
 
@@ -12,15 +13,15 @@ GROUP_B = ["TTB.BK", "KTB.BK", "TISCO.BK", "KKP.BK", "TCAP.BK", "BDMS.BK",
            "CPALL.BK", "CPN.BK", "WHA.BK", "AMATA.BK", "DIF.BK", "3BBIF.BK", 
            "TFFIF.BK", "WHART.BK", "FTREIT.BK", "MC.BK", "TTW.BK", "LH.BK", "AP.BK"]
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800)
 def fetch_stock_data(ticker):
     try:
         stock = yf.Ticker(ticker)
-        # 1. ขยาย period เป็น 2y เพื่อให้ได้จำนวนวันทำการเกิน 200 วันแน่นอน
+        # ดึงราคาย้อนหลัง 2 ปีเพื่อให้ได้วันทำการเกิน 200 วันชัวร์ๆ
         df = stock.history(period="2y")
         
         if df.empty or len(df) < 200:
-            return None
+            return None, f"{ticker}: ข้อมูลไม่ครบ 200 วัน"
             
         # คำนวณ SMA
         df['SMA_46'] = df['Close'].rolling(window=46).mean()
@@ -33,23 +34,22 @@ def fetch_stock_data(ticker):
         sma67 = latest['SMA_67']
         sma200 = latest['SMA_200']
         
-        # ดักจับกรณี SMA คำนวณไม่ได้ (NaN)
         if pd.isna(sma200) or pd.isna(sma46) or pd.isna(sma67):
-            return None
+            return None, f"{ticker}: คำนวณ SMA ไม่สำเร็จ"
 
-        # 2. แก้ไขการคำนวณ Dividend Yield
-        info = stock.info
-        div_yield = info.get('dividendYield') or info.get('trailingAnnualDividendYield') or 0
-        
-        if div_yield is None:
-            div_yield = 0
-            
-        # เช็กว่าค่าที่ได้มาเป็น % อยู่แล้ว (> 1.0) หรือเป็นทศนิยม (< 1.0)
-        if div_yield > 1.0:
-            dividend_yield_pct = div_yield
-        else:
-            dividend_yield_pct = div_yield * 100
-        
+        # คำนวณ Dividend Yield ย้อนหลัง 1 ปี (TTM) จากประวัติปันผลจริง (ไม่ใช้ stock.info เพื่อป้องกันโดนยี่ห้อบล็อก)
+        dividend_yield_pct = 0.0
+        try:
+            divs = stock.dividends
+            if not divs.empty:
+                divs.index = divs.index.tz_localize(None) # ปรับ timezone
+                one_year_ago = datetime.now() - timedelta(days=365)
+                ttm_div = divs[divs.index >= one_year_ago].sum()
+                if price > 0:
+                    dividend_yield_pct = (ttm_div / price) * 100
+        except Exception:
+            dividend_yield_pct = 0.0
+
         # จัดโซนตาม SMA
         if price > sma46 and price > sma67 and price > sma200:
             zone = "🔴 ส้มเข้ม (ขาขึ้นแข็งแกร่ง)"
@@ -68,9 +68,10 @@ def fetch_stock_data(ticker):
             "SMA 200": round(sma200, 2),
             "Yield (%)": round(dividend_yield_pct, 2),
             "Zone": zone
-        }
-    except Exception:
-        return None
+        }, None
+        
+    except Exception as e:
+        return None, f"{ticker}: {str(e)}"
 
 # --- หน้าตา Web App ---
 st.title("📈 Thai Stock Scanner: SMA & Dividend > 5%")
@@ -89,12 +90,16 @@ if st.button("🚀 เริ่มแสกนหุ้น"):
     my_bar = st.progress(0, text="กำลังดึงข้อมูล... กรุณารอสักครู่")
     
     results = []
+    errors = []
     total = len(tickers_to_scan)
     
     for i, ticker in enumerate(tickers_to_scan):
-        data = fetch_stock_data(ticker)
+        data, err = fetch_stock_data(ticker)
         if data:
             results.append(data)
+        if err:
+            errors.append(err)
+            
         my_bar.progress((i + 1) / total, text=f"กำลังประมวลผล: {ticker}")
         
     my_bar.empty()
@@ -115,7 +120,9 @@ if st.button("🚀 เริ่มแสกนหุ้น"):
             st.success("พบหุ้นที่เข้าเกณฑ์น่าสนใจวันนี้!")
             st.dataframe(target_stocks.reset_index(drop=True), use_container_width=True)
         else:
-            st.warning("วันนี้ยังไม่มีหุ้นตัวไหนเข้าเกณฑ์ (ปันผล > 5% และย่อตัวในโซนเหลือง/ครีม)")
+            st.info("วันนี้ยังไม่มีหุ้นตัวไหนเข้าเกณฑ์ (ปันผล > 5% และอยู่ในโซนเหลือง/ครีม)")
             
-st.markdown("---")
-st.caption("⚠️ **หมายเหตุ:** แนะนำตรวจสอบตัวเลขปันผลจริงกับเว็บ settrade.com อีกครั้งก่อนตัดสินใจสั่งซื้อ")
+    if errors:
+        with st.expander("⚠️ รายการหุ้นที่ไม่สามารถดึงข้อมูลได้"):
+            for err_msg in errors:
+                st.write(err_msg)
