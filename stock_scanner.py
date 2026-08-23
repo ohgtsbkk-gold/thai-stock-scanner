@@ -3,31 +3,44 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Thai Stock SMA Scanner", layout="wide")
+st.set_page_config(page_title="Thai Stock SMA 5-Zone Scanner", layout="wide")
 
-# รายชื่อหุ้น Group A และ Group B
-GROUP_A = ["SCC.BK", "AOT.BK", "GULF.BK", "TOP.BK", "ADVANC.BK", "PTT.BK", 
-           "PTTGC.BK", "PTTEP.BK", "KBANK.BK", "BBL.BK", "SCB.BK"]
+# ==============================================================================
+# รายชื่อหุ้นครบทั้งหมด (Group A + Group B + หุ้นเสริมปันผลสูง)
+# ==============================================================================
 
-GROUP_B = ["TTB.BK", "KTB.BK", "TISCO.BK", "KKP.BK", "TCAP.BK", "BDMS.BK", 
-           "CPALL.BK", "CPN.BK", "WHA.BK", "AMATA.BK", "DIF.BK", "3BBIF.BK", 
-           "TFFIF.BK", "WHART.BK", "FTREIT.BK", "MC.BK", "TTW.BK", "LH.BK", "AP.BK"]
+# Group A: หุ้นใหญ่ คูเมืองแข็งแกร่ง (ตามผัง + BH)
+GROUP_A = [
+    "SCC.BK", "AOT.BK", "GULF.BK", "TOP.BK", "ADVANC.BK", "PTT.BK", 
+    "PTTGC.BK", "PTTEP.BK", "KBANK.BK", "BBL.BK", "SCB.BK", "BH.BK"
+]
+
+# Group B: หุ้นปันผล/เติบโตตามผังต้นฉบับครบทุกแถบ + กองทรัสต์/หุ้นเสริมคุณภาพ
+GROUP_B = [
+    # --- รายชื่อจากผังรูปภาพ Group B ต้นฉบับครบทุกตัว ---
+    "KTB.BK", "TLI.BK", "TCAP.BK", "TTB.BK", "KKP.BK", "TIDLOR.BK", "MTC.BK", 
+    "TU.BK", "TOA.BK", "BTG.BK", "CRC.BK", "GPSC.BK", "AMATA.BK", "DIF.BK", 
+    "BAY.BK", "EGCO.BK", "AWC.BK", "CENTEL.BK", "BGRIM.BK", "KTC.BK", "CPN.BK", 
+    "STECON.BK", "CPALL.BK", "BEM.BK", "TISCO.BK", "SCGP.BK", "KCE.BK", "RATCH.BK", 
+    "BDMS.BK", "CPF.BK", "OSP.BK", "AEONTS.BK", "CBG.BK", "PLANB.BK", "HMPRO.BK", 
+    "3BBIF.BK", "TASCO.BK", "MAJOR.BK", "VGI.BK", "BJC.BK", "TFFIF.BK", "MINT.BK", 
+    "STA.BK", "DELTA.BK", "TRUE.BK", "HANA.BK", "WHA.BK", "CK.BK", "IVL.BK", 
+    "SAWAD.BK", "AP.BK", "CPAXT.BK", "LH.BK", "OR.BK", "BTS.BK",
+    
+    # --- สินทรัพย์สาย Core Yield & REITs เพิ่มเติม ---
+    "WHART.BK", "FTREIT.BK", "TTW.BK", "MC.BK", "CPNREIT.BK", "IMPACT.BK", "SIRI.BK"
+]
 
 @st.cache_data(ttl=1800)
 def fetch_stock_data(ticker):
     try:
         stock = yf.Ticker(ticker)
-        # 1. ขยายเป็น 5y เพื่อรับประกันว่าได้วันทำการเกิน 200 วันแน่นอน
         df = stock.history(period="5y")
-        
-        # 2. กรองเฉพาะแถวที่มีราคาปิดจริง ลบค่า NaN ออกทั้งหมด
         df = df.dropna(subset=['Close'])
         
-        total_days = len(df)
-        if total_days < 200:
-            return None, f"{ticker}: มีข้อมูลเพียง {total_days} วันทำการ (ต้องการอย่างน้อย 200 วัน)"
+        if len(df) < 200:
+            return None, f"{ticker}: ข้อมูลไม่ครบ 200 วัน"
             
-        # 3. คำนวณ SMA พร้อมใส่ min_periods กันพลาดกรณีข้อมูลขาดช่วงเล็กน้อย
         df['SMA_46'] = df['Close'].rolling(window=46, min_periods=40).mean()
         df['SMA_67'] = df['Close'].rolling(window=67, min_periods=60).mean()
         df['SMA_200'] = df['Close'].rolling(window=200, min_periods=180).mean()
@@ -39,9 +52,9 @@ def fetch_stock_data(ticker):
         sma200 = latest['SMA_200']
         
         if pd.isna(sma200) or pd.isna(sma46) or pd.isna(sma67):
-            return None, f"{ticker}: ค่า SMA ยังคงเป็น NaN (วันทำการไม่พอคำนวณ)"
+            return None, f"{ticker}: ค่า SMA เป็น NaN"
 
-        # 4. คำนวณ Dividend Yield (TTM) ย้อนหลัง 1 ปี
+        # คำนวณ Dividend Yield (TTM)
         dividend_yield_pct = 0.0
         try:
             divs = stock.dividends
@@ -54,15 +67,27 @@ def fetch_stock_data(ticker):
         except Exception:
             dividend_yield_pct = 0.0
 
-        # จัดโซนตาม SMA
-        if price > sma46 and price > sma67 and price > sma200:
-            zone = "🔴 ส้มเข้ม (ขาขึ้นแข็งแกร่ง)"
-        elif price > sma200 and (price < sma46 or price < sma67):
-            zone = "🟡 เหลือง (ย่อตัวบนขาขึ้น - น่าซื้อ)"
-        elif price < sma200 and (price > sma46 or price > sma67):
-            zone = "⚪ ครีม (รีบาวด์ - เริ่มฟื้นตัว)"
+        # ลอจิกแยก 5 โซน + Action คำแนะนำ
+        sma_mid_max = max(sma46, sma67)
+        sma_mid_min = min(sma46, sma67)
+
+        if price >= sma200 and price >= sma_mid_max:
+            zone = "🔴 ส้มเข้ม"
+            action = "✋ แพงไป / ควรรอ (อย่าเพิ่งเข้าซื้อ)"
+        elif price >= sma200 and price < sma_mid_max:
+            mid_point = (sma200 + sma_mid_max) / 2
+            if price >= mid_point:
+                zone = "🟠 ส้มอ่อน"
+                action = "⏳ รอก่อน / แรงขายยังไม่สุด"
+            else:
+                zone = "🟡 เหลือง"
+                action = "🎯 เข้าซื้อไม้ที่ 1 (จุดซื้อดีที่สุด)"
+        elif price < sma200 and price >= sma_mid_min:
+            zone = "⚪ ครีม"
+            action = "🛒 เข้าซื้อไม้ที่ 2 (ไม้ถัวเฉลี่ย)"
         else:
-            zone = "⚫ ดำ (ขาลงชัดเจน)"
+            zone = "⚫ ดำ"
+            action = "🚫 ห้ามซื้อเด็ดขาด / ขาลงชัดเจน"
             
         return {
             "Ticker": ticker.replace(".BK", ""),
@@ -71,19 +96,28 @@ def fetch_stock_data(ticker):
             "SMA 67": round(sma67, 2),
             "SMA 200": round(sma200, 2),
             "Yield (%)": round(dividend_yield_pct, 2),
-            "Zone": zone
+            "Zone": zone,
+            "คำแนะนำ (Action)": action
         }, None
         
     except Exception as e:
-        return None, f"{ticker}: เกิดข้อผิดพลาด ({str(e)})"
+        return None, f"{ticker}: ({str(e)})"
 
-# --- หน้าตา Web App ---
-st.title("📈 Thai Stock Scanner: SMA & Dividend > 5%")
-st.markdown("แสกนหุ้น Group A และ B ค้นหาจุดเข้าซื้อตามลอจิก **ย่อตัวใกล้เส้น 200 วัน** หรือ **เริ่มฟื้นตัว**")
+# --- UI Interface ---
+st.title("📈 Thai Stock Scanner: SMA 5-Zone & Dividend > 5%")
 
-group_choice = st.radio("เลือกกลุ่มหุ้นที่ต้องการแสกน:", ("Group A", "Group B", "ทั้งหมด (A + B)"))
+with st.expander("📖 คำแนะนำ Action ในแต่ละโซนสี (กดเพื่อเปิด/ปิด)", expanded=True):
+    st.markdown("""
+    * **🔴 ส้มเข้ม:** **แพงไป / ควรรอ** — หุ้นอยู่บนเทรนด์ขาขึ้นแรง ยังไม่ควรไล่ราคา
+    * **🟠 ส้มอ่อน:** **รอก่อน / แรงขายยังไม่สุด** — เริ่มย่อตัวลงมา แต่ยังไม่ถึงจุดที่คุ้มความเสี่ยง
+    * **🟡 เหลือง:** **เข้าซื้อไม้ที่ 1 (คุ้มที่สุด)** — ย่อลงมาใกล้เส้น SMA 200 วัน ได้ทั้ง Yield สูงและเงินต้นปลอดภัย
+    * **⚪ ครีม:** **เข้าซื้อไม้ที่ 2 (ไม้ถัวเฉลี่ย)** — หลุดเส้น 200 วันลงมาแต่เริ่มตั้งฐานได้ ใช้ถัวต้นทุน
+    * **⚫ ดำ:** **ห้ามซื้อเด็ดขาด** — ขาลงชัดเจน ปันผลสูงแค่ไหนก็เสี่ยงเงินต้นติดลบหนัก
+    """)
 
-if st.button("🚀 เริ่มแสกนหุ้น"):
+group_choice = st.radio("เลือกกลุ่มหุ้นที่ต้องการสแกน:", ("Group A", "Group B", "ทั้งหมด (A + B)"))
+
+if st.button("🚀 เริ่มสแกนหุ้น"):
     if group_choice == "Group A":
         tickers_to_scan = GROUP_A
     elif group_choice == "Group B":
@@ -111,20 +145,20 @@ if st.button("🚀 เริ่มแสกนหุ้น"):
     if results:
         df_results = pd.DataFrame(results)
         
-        st.subheader("📊 ข้อมูลหุ้นทั้งหมดที่แสกนได้")
-        st.dataframe(df_results, use_container_width=True)
-        
-        st.subheader("🎯 หุ้นเข้าเกณฑ์ซื้อ (Yield > 5% และอยู่ในโซนเหลือง/ครีม)")
+        st.subheader("🎯 หุ้นน่าซื้อวันนี้ (Yield > 5% และอยู่ในโซนเหลือง/ครีม)")
         target_stocks = df_results[
             (df_results['Yield (%)'] >= 5.0) & 
             (df_results['Zone'].str.contains("เหลือง|ครีม"))
         ]
         
         if not target_stocks.empty:
-            st.success("พบหุ้นที่เข้าเกณฑ์น่าสนใจวันนี้!")
+            st.success("พบหุ้นที่เข้าเกณฑ์น่าซื้อวันนี้!")
             st.dataframe(target_stocks.reset_index(drop=True), use_container_width=True)
         else:
             st.info("วันนี้ยังไม่มีหุ้นตัวไหนเข้าเกณฑ์ (ปันผล > 5% และอยู่ในโซนเหลือง/ครีม)")
+
+        st.subheader("📊 ข้อมูลหุ้นทั้งหมดที่สแกนได้")
+        st.dataframe(df_results, use_container_width=True)
             
     if errors:
         with st.expander("⚠️ รายการหุ้นที่มีปัญหา / ข้อมูลไม่พอคำนวณ"):
