@@ -20,11 +20,11 @@ GROUP_B = [
     # --- รายชื่อจากผังรูปภาพ Group B ต้นฉบับครบทุกตัว ---
     "KTB.BK", "TLI.BK", "TCAP.BK", "TTB.BK", "KKP.BK", "TIDLOR.BK", "MTC.BK", 
     "TU.BK", "TOA.BK", "BTG.BK", "CRC.BK", "GPSC.BK", "AMATA.BK", "DIF.BK", 
-    "BAY.BK", "EGCO.BK", "AWC.BK", "CENTEL.BK", "BGRIM.BK", "KTC.BK", "CPN.BK", 
+    "FTREIT.BK", "EGCO.BK", "AWC.BK", "CENTEL.BK", "BGRIM.BK", "KTC.BK", "CPN.BK", 
     "STECON.BK", "CPALL.BK", "BEM.BK", "TISCO.BK", "SCGP.BK", "KCE.BK", "RATCH.BK", 
     "BDMS.BK", "CPF.BK", "OSP.BK", "AEONTS.BK", "CBG.BK", "PLANB.BK", "HMPRO.BK", 
     "3BBIF.BK", "TASCO.BK", "MAJOR.BK", "TACC.BK", "BJC.BK", "TFFIF.BK", "MINT.BK", 
-    "STA.BK", "DELTA.BK", "TRUE.BK", "HANA.BK", "WHA.BK", "CK.BK", "IVL.BK", 
+    "WHART.BK", "AXTRART.BK", "TRUE.BK", "HANA.BK", "WHA.BK", "CK.BK", "IVL.BK", 
     "SAWAD.BK", "AP.BK", "CPAXT.BK", "LH.BK", "OR.BK", "BTS.BK",
     
     # --- สินทรัพย์สาย Core Yield & REITs เพิ่มเติม ---
