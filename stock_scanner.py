@@ -23,7 +23,7 @@ GROUP_B = [
     "BAY.BK", "EGCO.BK", "AWC.BK", "CENTEL.BK", "BGRIM.BK", "KTC.BK", "CPN.BK", 
     "STECON.BK", "CPALL.BK", "BEM.BK", "TISCO.BK", "SCGP.BK", "KCE.BK", "RATCH.BK", 
     "BDMS.BK", "CPF.BK", "OSP.BK", "AEONTS.BK", "CBG.BK", "PLANB.BK", "HMPRO.BK", 
-    "3BBIF.BK", "TASCO.BK", "MAJOR.BK", "VGI.BK", "BJC.BK", "TFFIF.BK", "MINT.BK", 
+    "3BBIF.BK", "TASCO.BK", "MAJOR.BK", "TACC.BK", "BJC.BK", "TFFIF.BK", "MINT.BK", 
     "STA.BK", "DELTA.BK", "TRUE.BK", "HANA.BK", "WHA.BK", "CK.BK", "IVL.BK", 
     "SAWAD.BK", "AP.BK", "CPAXT.BK", "LH.BK", "OR.BK", "BTS.BK",
     
