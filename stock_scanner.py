@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Thai Stock SMA 5-Zone Scanner", layout="wide")
 
 # ==============================================================================
-# รายชื่อหุ้นครบทั้งหมด (Group A + Group B + หุ้นเสริมปันผลสูง)
+# รายชื่อหุ้น Group A, Group B และ Group C (SET50)
 # ==============================================================================
 
 # Group A: หุ้นใหญ่ คูเมืองแข็งแกร่ง (ตามผัง + BH)
@@ -15,20 +15,28 @@ GROUP_A = [
     "PTTGC.BK", "PTTEP.BK", "KBANK.BK", "BBL.BK", "SCB.BK", "BH.BK"
 ]
 
-# Group B: หุ้นปันผล/เติบโตตามผังต้นฉบับครบทุกแถบ + กองทรัสต์/หุ้นเสริมคุณภาพ
+# Group B: หุ้นปันผล/เติบโตตามผังต้นฉบับ + กองทรัสต์/หุ้นเสริมคุณภาพ
 GROUP_B = [
-    # --- รายชื่อจากผังรูปภาพ Group B ต้นฉบับครบทุกตัว ---
-    "KTB.BK", "TLI.BK", "TCAP.BK", "TTB.BK", "KKP.BK", "TIDLOR.BK", "MTC.BK", 
+    "KTB.BK", "TLI.BK", "TCAP.BK", "TTB.BK", "KKP.BK", "TIDLOR.BK", "DIF.BK", 
     "TU.BK", "TOA.BK", "BTG.BK", "CRC.BK", "GPSC.BK", "AMATA.BK", "DIF.BK", 
-    "FTREIT.BK", "EGCO.BK", "AWC.BK", "CENTEL.BK", "BGRIM.BK", "KTC.BK", "CPN.BK", 
+    "BAY.BK", "EGCO.BK", "AWC.BK", "CENTEL.BK", "BGRIM.BK", "KTC.BK", "CPN.BK", 
     "STECON.BK", "CPALL.BK", "BEM.BK", "TISCO.BK", "SCGP.BK", "KCE.BK", "RATCH.BK", 
-    "BDMS.BK", "CPF.BK", "OSP.BK", "AEONTS.BK", "CBG.BK", "PLANB.BK", "HMPRO.BK", 
-    "3BBIF.BK", "TASCO.BK", "MAJOR.BK", "TACC.BK", "BJC.BK", "TFFIF.BK", "MINT.BK", 
-    "WHART.BK", "AXTRART.BK", "TRUE.BK", "HANA.BK", "WHA.BK", "CK.BK", "IVL.BK", 
+    "BDMS.BK", "CPF.BK", "OSP.BK", "AEONTS.BK", "CBG.BK", "TACC.BK", "HMPRO.BK", 
+    "3BBIF.BK", "TASCO.BK", "MAJOR.BK", "VGI.BK", "BJC.BK", "TFFIF.BK", "MINT.BK", 
+    "STA.BK", "DELTA.BK", "TRUE.BK", "HANA.BK", "WHA.BK", "CK.BK", "IVL.BK", 
     "SAWAD.BK", "AP.BK", "CPAXT.BK", "LH.BK", "OR.BK", "BTS.BK",
-    
-    # --- สินทรัพย์สาย Core Yield & REITs เพิ่มเติม ---
     "WHART.BK", "FTREIT.BK", "TTW.BK", "MC.BK", "CPNREIT.BK", "IMPACT.BK", "SIRI.BK"
+]
+
+# Group C: หุ้นในดัชนี SET50
+GROUP_C = [
+    "ADVANC.BK", "AOT.BK", "AWC.BK", "BANPU.BK", "BBL.BK", "BCP.BK", "BDMS.BK", 
+    "BEM.BK", "BGRIM.BK", "BH.BK", "BJC.BK", "CBG.BK", "CPALL.BK", "CPAXT.BK", 
+    "CPN.BK", "CRC.BK", "DELTA.BK", "EGCO.BK", "GLOBAL.BK", "GPSC.BK", "GULF.BK", 
+    "HMPRO.BK", "INTUCH.BK", "IVL.BK", "KBANK.BK", "KKP.BK", "KTB.BK", "KTC.BK", 
+    "MINT.BK", "MTC.BK", "OR.BK", "OSP.BK", "PTT.BK", "PTTEP.BK", "PTTGC.BK", 
+    "RATCH.BK", "SAWAD.BK", "SCB.BK", "SCC.BK", "SCGP.BK", "SIRI.BK", "TCAP.BK", 
+    "TISCO.BK", "TLI.BK", "TOP.BK", "TRUE.BK", "TTB.BK", "TU.BK", "WHA.BK"
 ]
 
 @st.cache_data(ttl=1800)
@@ -115,15 +123,22 @@ with st.expander("📖 คำแนะนำ Action ในแต่ละโซ�
     * **⚫ ดำ:** **ห้ามซื้อเด็ดขาด** — ขาลงชัดเจน ปันผลสูงแค่ไหนก็เสี่ยงเงินต้นติดลบหนัก
     """)
 
-group_choice = st.radio("เลือกกลุ่มหุ้นที่ต้องการสแกน:", ("Group A", "Group B", "ทั้งหมด (A + B)"))
+# ปรับเพิ่มตัวเลือก Group C (SET50)
+group_choice = st.radio(
+    "เลือกกลุ่มหุ้นที่ต้องการสแกน:", 
+    ("Group A", "Group B", "Group C (SET50)", "ทั้งหมด (A + B + C)")
+)
 
 if st.button("🚀 เริ่มสแกนหุ้น"):
     if group_choice == "Group A":
         tickers_to_scan = GROUP_A
     elif group_choice == "Group B":
         tickers_to_scan = GROUP_B
+    elif group_choice == "Group C (SET50)":
+        tickers_to_scan = GROUP_C
     else:
-        tickers_to_scan = GROUP_A + GROUP_B
+        # รวมหุ้นทุกหมวด โดยใช้ set() เพื่อตัดตัวซ้ำออก
+        tickers_to_scan = list(set(GROUP_A + GROUP_B + GROUP_C))
         
     my_bar = st.progress(0, text="กำลังดึงข้อมูล... กรุณารอสักครู่")
     
