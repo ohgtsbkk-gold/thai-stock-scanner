@@ -33,7 +33,7 @@ GROUP_C = [
     "ADVANC.BK", "AOT.BK", "AWC.BK", "BANPU.BK", "BBL.BK", "BCP.BK", "BDMS.BK", 
     "BEM.BK", "BGRIM.BK", "BH.BK", "BJC.BK", "CBG.BK", "CPALL.BK", "CPAXT.BK", 
     "CPN.BK", "CRC.BK", "DELTA.BK", "EGCO.BK", "GLOBAL.BK", "GPSC.BK", "GULF.BK", 
-    "HMPRO.BK", "INTUCH.BK", "IVL.BK", "KBANK.BK", "KKP.BK", "KTB.BK", "KTC.BK", 
+    "HMPRO.BK", "WHART.BK", "IVL.BK", "KBANK.BK", "KKP.BK", "KTB.BK", "KTC.BK", 
     "MINT.BK", "MTC.BK", "OR.BK", "OSP.BK", "PTT.BK", "PTTEP.BK", "PTTGC.BK", 
     "RATCH.BK", "SAWAD.BK", "SCB.BK", "SCC.BK", "SCGP.BK", "SIRI.BK", "TCAP.BK", 
     "TISCO.BK", "TLI.BK", "TOP.BK", "TRUE.BK", "TTB.BK", "TU.BK", "WHA.BK"
