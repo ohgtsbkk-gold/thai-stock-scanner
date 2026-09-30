@@ -17,8 +17,8 @@ GROUP_A = [
 
 # Group B: เฉพาะหุ้นในพอร์ตของคุณ 10 ตัวตามภาพ
 GROUP_B = [
-    "TTW.BK", "WHA.BK", "TFFIF.BK", "FTREIT.BK", "DIF.BK", 
-    "ADVANC.BK", "MC.BK", "WHART.BK", "AXTRART.BK", "3BBIF.BK"
+    "TTW.BK", "TFFIF.BK", "FTREIT.BK", "DIF.BK", 
+    "CPALL.BK", "MC.BK", "WHART.BK", "AXTRART.BK", "3BBIF.BK"
 ]
 
 # Group C: หุ้นในดัชนี SET50
